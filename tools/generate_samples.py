@@ -23,15 +23,17 @@ _FAKE_PANS = [
     "AAAPL0004E",
 ]
 
+# Synthetic scheme codes and fund names — not real ISINs, not real funds.
+# Every code starts with SYN so it is obvious these are fake reference data.
 _FAKE_SCHEMES = [
-    ("INF109K01VQ1", "ICICI Pru Bluechip Fund - Direct Growth"),
-    ("INF179KB1HP9", "HDFC Top 100 Fund - Direct Growth"),
-    ("INF204K01M30", "Axis Small Cap Fund - Direct Growth"),
-    ("INF789FC1MC8", "SBI Magnum Midcap Fund - Direct Growth"),
-    ("INF090I01BT1", "Franklin India Prima Fund - Direct Growth"),
+    ("SYNLRGCAP001", "Alpha Largecap Growth Fund - Direct"),
+    ("SYNTOP100002", "Beta Top 100 Growth Fund - Direct"),
+    ("SYNSMLCAP003", "Gamma Smallcap Growth Fund - Direct"),
+    ("SYNMIDCAP004", "Delta Midcap Growth Fund - Direct"),
+    ("SYNFLEXI005", "Epsilon Flexicap Growth Fund - Direct"),
 ]
 
-_FAKE_AMC_CODES = ["ICICI01", "HDFC02", "AXIS03", "SBI04", "FRANK05"]
+_FAKE_AMC_CODES = ["ALPHA01", "BETA02", "GAMMA03", "DELTA04", "EPSILON5"]
 
 
 # ---- CAMS generator ----

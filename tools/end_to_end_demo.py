@@ -40,11 +40,11 @@ DATABASE_URL = os.environ.get(
 )
 
 _FAKE_SCHEMES = [
-    ("INF109K01VQ1", "ICICI01", "ICICI Pru Bluechip Fund - Direct Growth"),
-    ("INF179KB1HP9", "HDFC02", "HDFC Top 100 Fund - Direct Growth"),
-    ("INF204K01M30", "AXIS03", "Axis Small Cap Fund - Direct Growth"),
-    ("INF789FC1MC8", "SBI04", "SBI Magnum Midcap Fund - Direct Growth"),
-    ("INF090I01BT1", "FRANK05", "Franklin India Prima Fund - Direct Growth"),
+    ("SYNLRGCAP001", "ALPHA01",   "Alpha Largecap Growth Fund - Direct"),
+    ("SYNTOP100002", "BETA02",    "Beta Top 100 Growth Fund - Direct"),
+    ("SYNSMLCAP003", "GAMMA03",   "Gamma Smallcap Growth Fund - Direct"),
+    ("SYNMIDCAP004", "DELTA04",   "Delta Midcap Growth Fund - Direct"),
+    ("SYNFLEXI005",  "EPSILON5",  "Epsilon Flexicap Growth Fund - Direct"),
 ]
 
 _FAKE_ACCOUNTS = [

@@ -28,8 +28,8 @@ def test_cams_normalize_renames_columns():
         {
             "USRTRXNO": ["1997865738"],
             "FOLIO_NO": ["1310253377"],
-            "PRODCODE": ["ICICI24-GR"],
-            "SCHEME_CODE": ["INF109K01VQ1"],
+            "PRODCODE": ["SYN24-GR"],
+            "SCHEME_CODE": ["SYNTEST00001"],
             "UNITS": [100.5],
             "AMOUNT": [10050.0],
             "TRADDATE": [date(2025, 7, 28)],
