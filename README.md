@@ -131,6 +131,68 @@ That gives you a working demo with real Postgres, real parsing, real FIFO, real 
 
 ---
 
+## Screenshots
+
+The reference Django app — sidebar nav, light theme, real ledger data.
+
+### Overview
+Top-line stats + transaction mix + recent files.
+![Overview dashboard](docs/screenshots/overview.png)
+
+### Feed Files
+Status summary cards (clickable to filter), search, provider / date chips, reprocess action per row, and an inline error preview on failed files.
+![Feed Files list](docs/screenshots/feed-files.png)
+
+### File detail
+Per-file processing runs, transactions with per-PAN avatar colours, action-coloured amounts, and Download-source / Export-CSV / Reprocess actions.
+![File detail](docs/screenshots/file-detail.png)
+
+### Ingest file
+Upload form with provider toggle and drag-drop file picker.
+![Ingest file](docs/screenshots/ingest.png)
+
+### Exceptions
+Manual-review queue for unknown PANs, ambiguous ownership, folio / scheme mismatches.
+![Exceptions](docs/screenshots/exceptions.png)
+
+---
+
+## Code map — where each piece of logic lives
+
+| What | File | Notes |
+|---|---|---|
+| **CAMS adapter** (field map, classifier, composite key) | `src/openreversefeed/adapters/cams.py` | priority 100, `USRTRXNO`-based composite key |
+| **KFintech Format1 adapter** (`INWARDNUM0` + `TD_TRNO`) | `src/openreversefeed/adapters/kfintech.py` — `KFintechFormat1Adapter` | priority 90, discriminator headers `TD_PURRED` + `TRFLAG` |
+| **KFintech Format2 adapter** (`INWARDNO` variant) | same file, `KFintechFormat2Adapter` | priority 80 |
+| **KFintech CSV adapter** (English-header variant) | same file, `KFintechCsvAdapter` | priority 70 |
+| **Registrar detection** | `src/openreversefeed/adapters/registry.py` | priority-ranked with discriminator-header tiebreak |
+| **CAMS classifier** (P/SI/TI/D/BON → buy, R/SO/TO/DP → sell) | `CamsAdapter.classify_row` in `adapters/cams.py` | longest-prefix match for composite codes like `SISF22S` |
+| **KFintech classifier** (TRFLAG override → TD_PURRED fallthrough) | `_KFintechBase.classify_row` in `adapters/kfintech.py` | `TI/TO/SI/SO` flags override purred, mode `R` overrides everything |
+| **Composite key builder** (deterministic, no hashing) | `src/openreversefeed/core/composite_key.py` | `CAMS: {orig}_{type}_{trxn}_{yyyymmdd}`, `KFintech: {trxn}_{parent}_{folio}_{yyyymmdd}` |
+| **In-file deduplication** | `src/openreversefeed/core/dedup.py` | drops duplicate `composite_key`, preserves first occurrence |
+| **Redemption+reversal pair removal (KFintech)** | `remove_kfintech_pairs` in `src/openreversefeed/core/pair_removal.py` | vectorized pandas self-merge on `parent_transaction_number`, `folio_number`, opposite-sign within 1e-6 |
+| **Redemption+reversal pair removal (CAMS)** | `remove_cams_pairs` in same file | group by `(folio, transaction_type, transaction_number)`, opposite-sign match |
+| **Negative-value correction** (both units + amount negative → flip sign, flip type, mark reversal) | `src/openreversefeed/core/negative_fix.py` | uses adapter's `type_flip_map` |
+| **Transfer / switch aggregation (KFintech)** | `aggregate_kfintech_transfers` in `src/openreversefeed/core/aggregation.py` | deterministic pre-sort by `(transaction_date, registrar_row_index)` then groupby TI/SI/SO/TO |
+| **Switch aggregation (CAMS)** | `aggregate_cams_switches` in same file | SI/SO only, same deterministic pre-sort |
+| **KFintech P+SIN conflict resolution** | `src/openreversefeed/core/conflict.py` | resolves P vs SIN dedup inside a single file |
+| **Cleaner composition** (the full pipeline) | `src/openreversefeed/core/cleaner.py` | runs pair removal → negative fix → aggregation → conflict → composite key → in-file dedup → classify, in that order |
+| **Per-row validator** (required fields, PAN regex, scheme lookup) | `src/openreversefeed/core/validator.py` | raises `ValidationError` with a `CorrectionType` |
+| **Family PAN account resolver** | `src/openreversefeed/core/account_resolver.py` | exact ownership → individual fallback → `AmbiguousPanError` |
+| **FIFO investment calculator** | `src/openreversefeed/core/fifo.py` | `Decimal` precision, overselling capped at zero |
+| **PrewarmCache dataclass** | `src/openreversefeed/core/cache.py` | carries batch lookups between validator / resolver / repo |
+| **Canonical enums** (Registrar, Action, TransactionStatus, CorrectionType) | `src/openreversefeed/core/models.py` | `StrEnum` |
+| **SQLAlchemy models for all 11 tables** | `src/openreversefeed/db/models.py` | transactions row is the ledger primitive |
+| **Alembic initial migration** | `src/openreversefeed/db/alembic/versions/20260414_0001_initial.py` | creates the whole schema via `metadata.create_all` |
+| **Runtime settings** (env-driven, publisher validation) | `src/openreversefeed/settings.py` | `pydantic-settings` with `OFR_` prefix |
+| **`orf` CLI** | `src/openreversefeed/cli.py` | typer stub, commands wired in later chunks |
+| **Synthetic sample generator** (CAMS CSV + KFintech CSV + KFintech DBF) | `tools/generate_samples.py` | all fake `AAAPL*` PANs + `SYN*` scheme codes |
+| **End-to-end demo script** | `tools/end_to_end_demo.py` | seeds accounts / AMCs / schemes, runs all three sample files through the full pipeline |
+| **Forbidden-strings CI guard** | `tools/check_forbidden_strings.py` | blocks brand names, personal identifiers, real reference data, secrets |
+| **Django reference app (demo)** | `examples/django_reference/` | Django 5, SQLAlchemy bridge, no Django ORM for feed data |
+
+---
+
 ## What's in the box
 
 ### Library (`src/openreversefeed/`)
