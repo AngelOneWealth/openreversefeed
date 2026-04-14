@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Feed Files · openreversefeed{% endblock %}
+{% block crumb_leaf %}Feed Files{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Feed Files</h1>
+    <p>Registrar feed uploads, their processing status, and resulting transactions.</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="{% url 'uploads:new' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Ingest file
+    </a>
+  </div>
+</div>
+
+<form method="get" class="filter-bar">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search filename or uploader…" autocomplete="off">
+  </div>
+
+  <div class="chip-group" role="group" aria-label="Provider">
+    {% for p in provider_choices %}
+      <button type="submit" name="provider" value="{{ p }}" class="chip {% if p == provider %}active{% endif %}">{% if p == "all" %}All providers{% else %}{{ p|upper }}{% endif %}</button>
+    {% endfor %}
+  </div>
+
+  <div class="chip-group" role="group" aria-label="Status">
+    {% for s in status_choices %}
+      <button type="submit" name="status" value="{{ s }}" class="chip {% if s == status %}active{% endif %}">{{ s }}</button>
+    {% endfor %}
+  </div>
+
+  {# Preserve filter state when switching dimension #}
+  <input type="hidden" name="status" value="{{ status }}">
+  <input type="hidden" name="provider" value="{{ provider }}">
+
+  <div class="spacer"></div>
+  <div class="total">Showing <strong>{{ shown_count }}</strong> of <strong>{{ total_files }}</strong></div>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 60px">#</th>
+        <th>Filename</th>
+        <th>Provider</th>
+        <th>Status</th>
+        <th>Uploaded by</th>
+        <th>Uploaded</th>
+        <th class="num">Rows</th>
+        <th class="num">Transactions</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in rows %}
+        <tr>
+          <td class="mono muted">#{{ f.id }}</td>
+          <td class="mono fg">{{ f.filename }}</td>
+          <td>{% if f.registrar %}<span class="provider provider-{{ f.registrar }}">{{ f.registrar|upper }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+          <td class="muted">{{ f.uploaded_by|default:"—" }}</td>
+          <td class="dim">{{ f.created_at|date:"M j, H:i" }}</td>
+          <td class="num mono">{{ f.row_count|default:"—" }}</td>
+          <td class="num"><strong class="fg">{{ f.txn_count }}</strong></td>
+          <td class="right"><a class="btn btn-ghost btn-sm" href="{% url 'uploads:detail' f.id %}">Open →</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9">
+          <div class="empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <h3>No files match</h3>
+            <p>Try removing filters or ingest a new file.</p>
+            <a class="btn btn-primary" href="{% url 'uploads:new' %}">Ingest file</a>
+          </div>
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

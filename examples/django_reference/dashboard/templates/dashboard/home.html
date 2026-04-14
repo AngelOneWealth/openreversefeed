@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Overview · openreversefeed{% endblock %}
+{% block crumb_leaf %}Overview{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Overview</h1>
+    <p>Real-time state of ingestion, positions, and downstream events.</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-ghost" href="{% url 'uploads:list' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      All files
+    </a>
+    <a class="btn btn-primary" href="{% url 'uploads:new' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Ingest file
+    </a>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat blue">
+    <div class="stat-head">
+      <div class="stat-label">Transactions</div>
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+    </div>
+    <div class="stat-num">{{ stats.transactions }}</div>
+    <div class="stat-delta up">
+      {% if stats.transactions %}<span class="dot-live"></span>Live ledger{% else %}No data yet{% endif %}
+      <span class="sparkline">· {{ stats.ingestion_runs }} runs</span>
+    </div>
+    <div class="stat-trend">
+      <span style="height: 6px"></span><span style="height: 11px"></span>
+      <span style="height: 8px"></span><span style="height: 15px"></span>
+      <span style="height: 12px"></span><span style="height: 18px"></span>
+      <span style="height: 16px"></span><span style="height: 22px"></span>
+    </div>
+  </div>
+
+  <div class="stat emerald">
+    <div class="stat-head">
+      <div class="stat-label">Feed Files</div>
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+    </div>
+    <div class="stat-num">{{ stats.source_files }}</div>
+    <div class="stat-delta flat">{{ stats.ingestion_runs }} processing runs</div>
+    <div class="stat-trend">
+      <span style="height: 4px"></span><span style="height: 8px"></span>
+      <span style="height: 6px"></span><span style="height: 10px"></span>
+      <span style="height: 14px"></span><span style="height: 18px"></span>
+    </div>
+  </div>
+
+  <div class="stat violet">
+    <div class="stat-head">
+      <div class="stat-label">Accounts</div>
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+    </div>
+    <div class="stat-num">{{ stats.accounts }}</div>
+    <div class="stat-delta flat">{{ stats.schemes }} schemes registered</div>
+  </div>
+
+  <div class="stat amber">
+    <div class="stat-head">
+      <div class="stat-label">Outbox Pending</div>
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+    </div>
+    <div class="stat-num">{{ stats.outbox_pending }}</div>
+    <div class="stat-delta flat">{{ stats.outbox_published }} published</div>
+  </div>
+
+  <div class="stat rose">
+    <div class="stat-head">
+      <div class="stat-label">Exceptions</div>
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+    </div>
+    <div class="stat-num">{{ stats.corrections_pending }}</div>
+    <div class="stat-delta flat">awaiting manual review</div>
+  </div>
+</div>
+
+<h2 class="section">Transaction Mix <span class="count">{{ per_registrar|length }}</span></h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Provider</th>
+        <th>Action</th>
+        <th>Tag</th>
+        <th class="num">Count</th>
+        <th class="num">Total Units</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in per_registrar %}
+        <tr>
+          <td><span class="provider provider-{{ r.registrar }}">{{ r.registrar|upper }}</span></td>
+          <td class="fg">{{ r.action }}</td>
+          <td><span class="tag tag-{{ r.action_tag }}">{{ r.action_tag }}</span></td>
+          <td class="num fg">{{ r.n }}</td>
+          <td class="num mono">{{ r.total_units|floatformat:4 }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">
+            <div class="empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              <h3>No transactions yet</h3>
+              <p>Ingest a CAMS or KFintech feed file to start populating the ledger.</p>
+              <a class="btn btn-primary" href="{% url 'uploads:new' %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Ingest your first file
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="section">Recent Feed Files <span class="count">{{ recent_files|length }}</span></h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Filename</th>
+        <th>Provider</th>
+        <th>Status</th>
+        <th>Uploaded</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in recent_files %}
+        <tr>
+          <td class="mono muted">#{{ f.id }}</td>
+          <td class="mono fg">{{ f.filename }}</td>
+          <td>{% if f.registrar %}<span class="provider provider-{{ f.registrar }}">{{ f.registrar|upper }}</span>{% else %}—{% endif %}</td>
+          <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
+          <td class="dim">{{ f.created_at|date:"M j, H:i" }}</td>
+          <td class="right"><a class="btn btn-ghost btn-sm" href="{% url 'uploads:detail' f.id %}">Open →</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">No files yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

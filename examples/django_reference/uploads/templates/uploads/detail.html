@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ sf.filename }} · openreversefeed{% endblock %}
+{% block crumb_root %}<a href="{% url 'uploads:list' %}">Feed Files</a>{% endblock %}
+{% block crumb_leaf %}#{{ sf.id }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>{{ sf.filename }}</h1>
+    <p><span class="mono muted">#{{ sf.id }}</span> · uploaded by {{ sf.uploaded_by|default:"—" }} on {{ sf.created_at|date:"M j, Y H:i" }}</p>
+  </div>
+  <div class="actions">
+    {% if sf.status == "pending" %}
+    <form method="post" action="{% url 'uploads:process' sf.id %}">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Process now
+      </button>
+    </form>
+    {% endif %}
+    <a class="btn btn-ghost" href="{% url 'uploads:list' %}">← Back to list</a>
+  </div>
+</div>
+
+<h2 class="section">File Details</h2>
+<div class="card">
+  <div class="kv-grid">
+    <div class="kv"><span class="k">Status</span><span class="v"><span class="badge badge-{{ sf.status }}">{{ sf.status }}</span></span></div>
+    <div class="kv"><span class="k">Provider</span><span class="v">{% if sf.registrar %}<span class="provider provider-{{ sf.registrar }}">{{ sf.registrar|upper }}</span>{% else %}—{% endif %}</span></div>
+    <div class="kv"><span class="k">Rows (raw)</span><span class="v mono">{{ sf.row_count|default:"—" }}</span></div>
+    <div class="kv"><span class="k">Checksum</span><span class="v mono">{{ sf.checksum|slice:":16"|default:"—" }}…</span></div>
+    <div class="kv"><span class="k">Storage</span><span class="v mono">{{ sf.storage_uri|truncatechars:60 }}</span></div>
+    <div class="kv"><span class="k">Created</span><span class="v">{{ sf.created_at|date:"M j, Y · H:i:s" }}</span></div>
+    {% if sf.error %}<div class="kv" style="grid-column: 1 / -1;"><span class="k">Error</span><span class="v mono" style="color: var(--rose);">{{ sf.error }}</span></div>{% endif %}
+  </div>
+</div>
+
+<h2 class="section">Processing Runs <span class="count">{{ runs|length }}</span></h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>#</th><th>Status</th><th>Started</th><th>Ended</th><th>Stats</th></tr>
+    </thead>
+    <tbody>
+      {% for r in runs %}
+        <tr>
+          <td class="mono muted">#{{ r.id }}</td>
+          <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+          <td class="dim">{{ r.started_at|date:"M j, H:i:s" }}</td>
+          <td class="dim">{{ r.ended_at|date:"M j, H:i:s"|default:"—" }}</td>
+          <td class="mono" style="font-size: 0.75rem; color: var(--muted-strong);">{{ r.stats }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5"><div class="empty"><h3>No processing runs yet</h3><p>Click <strong>Process now</strong> to run the pipeline.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="section">Transactions <span class="count">{{ txns|length }}</span></h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date</th>
+        <th>Account</th>
+        <th>Scheme</th>
+        <th>Folio</th>
+        <th>Action</th>
+        <th>Tag</th>
+        <th class="num">Units</th>
+        <th class="num">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in txns %}
+        <tr>
+          <td class="mono muted">#{{ row.t.id }}</td>
+          <td class="dim mono">{{ row.t.transaction_date|date:"Y-m-d" }}</td>
+          <td>
+            <div class="account-cell">
+              <span class="avatar {{ row.avatar_class }}">{{ row.initials }}</span>
+              <div class="meta">
+                <div class="name">{{ row.account_name }}</div>
+                <div class="pan">{{ row.account_pan }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="mono" style="font-size: 0.78rem;">{{ row.scheme_code }}</td>
+          <td class="mono dim">{{ row.folio_number }}</td>
+          <td class="fg">{{ row.t.action }}</td>
+          <td><span class="tag tag-{{ row.t.action_tag }}">{{ row.t.action_tag }}</span></td>
+          <td class="num mono">{{ row.t.units|floatformat:4 }}</td>
+          <td class="num mono amt-{{ row.t.action }}">₹{{ row.t.amount|floatformat:2 }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9"><div class="empty"><h3>No transactions for this file</h3><p>Waiting on processing.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

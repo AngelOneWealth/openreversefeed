@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Ingest file · openreversefeed{% endblock %}
+{% block crumb_leaf %}Ingest file{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Ingest Feed File</h1>
+    <p>Upload a CAMS or KFintech registrar feed. We validate, deduplicate, classify, and write to the ledger.</p>
+  </div>
+</div>
+
+<div class="card padded" style="max-width: 720px;">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-field">
+      <label class="title">Feed file</label>
+      {{ form.file }}
+      <div class="form-hint">Supported formats: .csv, .xls, .xlsx, .dbf</div>
+    </div>
+
+    <div class="form-field">
+      <label class="title">Provider</label>
+      <div class="radio-group">
+        <input type="radio" id="rp-cams" name="registrar" value="cams" checked>
+        <label for="rp-cams">CAMS</label>
+        <input type="radio" id="rp-kfintech" name="registrar" value="kfintech">
+        <label for="rp-kfintech">KFintech</label>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label class="title" for="id_uploaded_by">Uploaded by</label>
+      <input type="text" name="uploaded_by" id="id_uploaded_by" value="operator">
+      <div class="form-hint">Who is submitting this file — appears in audit logs.</div>
+    </div>
+
+    <div style="display: flex; gap: 0.6rem;">
+      <button class="btn btn-primary" type="submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload
+      </button>
+      <a class="btn btn-ghost" href="{% url 'uploads:list' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

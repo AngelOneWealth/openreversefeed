@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Exceptions · openreversefeed{% endblock %}
+{% block crumb_leaf %}Exceptions{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Exception Queue</h1>
+    <p>Records that require manual review — unknown PANs, ambiguous ownership, scheme mismatches, folio errors.</p>
+  </div>
+</div>
+
+<form method="get" class="filter-bar">
+  <div class="chip-group">
+    {% for s in choices %}
+      <button type="submit" name="status" value="{{ s }}" class="chip {% if s == status_filter %}active{% endif %}">{{ s }}</button>
+    {% endfor %}
+  </div>
+  <div class="spacer"></div>
+  <div class="total">Showing <strong>{{ items|length }}</strong> of <strong>{{ total }}</strong></div>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 80px">#</th>
+        <th>Type</th>
+        <th>PAN</th>
+        <th>Candidate accounts</th>
+        <th>Status</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in items %}
+        <tr>
+          <td class="mono muted">#{{ c.id|slice:":8" }}</td>
+          <td><span class="tag">{{ c.correction_type }}</span></td>
+          <td class="mono fg">{{ c.pan|default:"—" }}</td>
+          <td class="mono dim" style="font-size: 0.78rem;">{{ c.candidate_account_ids|default:"—" }}</td>
+          <td><span class="badge badge-{{ c.status }}">{{ c.status }}</span></td>
+          <td class="dim">{{ c.created_at|date:"M j, H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <h3>All clear</h3>
+          <p>No exceptions in this status. The ledger is clean.</p>
+        </div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
