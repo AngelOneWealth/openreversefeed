@@ -10,7 +10,7 @@ jobs:
     name: guardrails
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: forbidden strings
         run: python tools/check_forbidden_strings.py
       - name: notice file exists
@@ -45,7 +45,7 @@ jobs:
       OFR_DATABASE_URL: postgresql+psycopg://ofr:ofr@localhost:5432/ofr
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -86,7 +86,7 @@ jobs:
       DJANGO_DEBUG: "0"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: guardrails
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
