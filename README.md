@@ -14,7 +14,7 @@ Every wealth platform in India re-implements reverse feed processing from scratc
 
 ```bash
 # 1. Clone + venv + install
-git clone https://github.com/openreversefeed/openreversefeed.git
+git clone https://github.com/AngelOneWealth/openreversefeed.git
 cd openreversefeed
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"

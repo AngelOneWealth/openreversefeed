@@ -60,9 +60,9 @@ dev = [
 orf = "openreversefeed.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/openreversefeed/openreversefeed"
-Issues = "https://github.com/openreversefeed/openreversefeed/issues"
-Documentation = "https://github.com/openreversefeed/openreversefeed#readme"
+Homepage = "https://github.com/AngelOneWealth/openreversefeed"
+Issues = "https://github.com/AngelOneWealth/openreversefeed/issues"
+Documentation = "https://github.com/AngelOneWealth/openreversefeed#readme"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/openreversefeed"]
