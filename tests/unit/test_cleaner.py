@@ -35,6 +35,37 @@ def test_cleaner_runs_all_steps_on_minimal_cams_df():
     assert "action_tag" in out.columns
 
 
+def test_cleaner_drops_cams_ticob_and_tocob_rows():
+    """CAMS close-of-business variants (TICOB/TOCOB) are unsupported by the
+    reference pipeline — the source system rejects them at validation time
+    and the cleaner must drop them before classification, otherwise the
+    prefix matcher would silently treat them as ordinary TI/TO transfers."""
+    cleaner = Cleaner()
+    adapter = CamsAdapter()
+    rows = []
+    for i, ttype in enumerate(["P", "TICOB", "TOCOB", "P"]):
+        rows.append(
+            {
+                "transaction_id": f"ID{i}",
+                "folio_number": "F1",
+                "product_code": "P1",
+                "scheme_code": "S1",
+                "units": 100.0,
+                "amount": 10000.0,
+                "transaction_date": date(2025, 1, 1),
+                "transaction_mode": "N",
+                "transaction_type": ttype,
+                "transaction_number": f"T{i}",
+                "registrar_row_index": i,
+                "__source_meta": [{}],
+            }
+        )
+    df = pd.DataFrame(rows)
+    out = cleaner.run(df, adapter)
+    assert len(out) == 2
+    assert set(out["transaction_type"]) == {"P"}
+
+
 def test_cleaner_kfintech_preserves_group_columns_through_conflict_resolution():
     """Regression: the conflict resolver must not strip transaction_number or
     folio_number from the cleaned DataFrame, otherwise the composite-key

@@ -20,6 +20,15 @@ class Cleaner:
 
         step = df.copy()
 
+        # Drop rows whose transaction_type is in the adapter's rejected set
+        # (e.g. CAMS TICOB / TOCOB). These do not represent real orders and
+        # silently classifying them as transfer in/out would corrupt positions.
+        rejected = getattr(adapter, "rejected_types", set()) or set()
+        if rejected and "transaction_type" in step.columns:
+            step = step[~step["transaction_type"].isin(rejected)].reset_index(drop=True)
+            if step.empty:
+                return step
+
         # Step 4b — pair removal (registrar-specific)
         if adapter.registrar is Registrar.KFINTECH:
             step = remove_kfintech_pairs(step)

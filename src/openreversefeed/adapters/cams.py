@@ -38,7 +38,7 @@ _TYPE_FLIP_MAP: dict[str, str] = {
     "DP": "D",
 }
 
-_BUY_TYPES = {"P", "SI", "TI", "D", "BON"}
+_BUY_TYPES = {"P", "SI", "TI", "D", "BON", "NFO"}
 _SELL_TYPES = {"R", "SO", "TO", "DP"}
 _NO_EFFECT_TYPES = {"N", "J"}
 
@@ -52,7 +52,18 @@ _TYPE_TO_TAG = {
     "D": "dividend",
     "DP": "dividend_payout",
     "BON": "bonus",
+    # NFO (New Fund Offer): initial subscription to a new scheme during the
+    # offer period. Classified as a purchase in the ledger — the investor is
+    # acquiring units at the NFO price (usually ₹10) and the outcome is a
+    # buy position just like a regular purchase.
+    "NFO": "new_fund_offer",
 }
+
+# CAMS transaction types we actively refuse. TICOB / TOCOB are the
+# "close of business" variants of transfer in/out and the source system
+# rejects them at validation time. If you have a registrar that ships real
+# COB data you want to process, subclass CamsAdapter and clear this set.
+_REJECTED_TYPES = {"TICOB", "TOCOB"}
 
 
 class _CamsPairStrategy(PairRemovalStrategy):
@@ -87,6 +98,7 @@ class CamsAdapter(FeedAdapter):
     discriminator_headers: set[str] = set()
     field_map = _FIELD_MAP
     type_flip_map = _TYPE_FLIP_MAP
+    rejected_types = _REJECTED_TYPES
 
     def parse(self, file_path: str | Path) -> pd.DataFrame:
         path = Path(file_path)

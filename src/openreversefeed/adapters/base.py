@@ -35,6 +35,14 @@ class FeedAdapter(ABC):
     field_map: dict[str, str]
     type_flip_map: dict[str, str]
 
+    # Transaction types the adapter actively refuses. Rows with a
+    # transaction_type in this set are dropped by the cleaner before the rest
+    # of the pipeline runs. Used for CAMS TICOB / TOCOB — the source system
+    # rejects these at validation time because the COB (close of business)
+    # suffix is not a transferable order and will produce bogus positions if
+    # classified as a TI/TO.
+    rejected_types: set[str] = set()
+
     @abstractmethod
     def parse(self, file_path: str | Path) -> pd.DataFrame:
         """Read the file from disk, return a raw DataFrame (source column names)."""

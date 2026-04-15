@@ -61,6 +61,9 @@ _PURRED_TO_ACTION = {
     "R": (Action.SELL, "redemption"),
     "D": (Action.BUY, "dividend"),
     "DP": (Action.SELL, "dividend_payout"),
+    # NFO (New Fund Offer): initial subscription during the offer period.
+    # Classified as a buy just like a regular purchase.
+    "NFO": (Action.BUY, "new_fund_offer"),
 }
 
 _FLAG_TO_ACTION = {

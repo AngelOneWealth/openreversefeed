@@ -97,6 +97,20 @@ def test_cams_classify_non_financial_no_effect():
     assert action is Action.NO_EFFECT
 
 
+def test_cams_classify_nfo_is_buy_new_fund_offer():
+    adapter = CamsAdapter()
+    action, tag, is_rev = adapter.classify_row(
+        {"transaction_type": "NFO", "transaction_mode": "N"}
+    )
+    assert action is Action.BUY
+    assert tag == "new_fund_offer"
+    assert is_rev is False
+
+
+def test_cams_rejected_types_contains_ticob_and_tocob():
+    assert CamsAdapter.rejected_types == {"TICOB", "TOCOB"}
+
+
 def test_cams_composite_key_deterministic():
     adapter = CamsAdapter()
     row = {
