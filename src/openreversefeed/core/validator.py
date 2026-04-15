@@ -39,7 +39,23 @@ def validate_row(row: dict[str, Any], cache: PrewarmCache) -> None:
     if pan not in cache.accounts_by_pan:
         raise ValidationError(CorrectionType.PAN_NOT_FOUND, f"PAN not in accounts: {pan}")
 
-    if row["scheme_code"] not in cache.schemes_by_code:
+    scheme = cache.schemes_by_code.get(row["scheme_code"])
+    if scheme is None:
         raise ValidationError(
             CorrectionType.SCHEME_NOT_FOUND, f"scheme not found: {row['scheme_code']}"
+        )
+
+    # Dividend option mismatch: if the feed explicitly declares a
+    # plan_type (CAMS REINVEST_F, KFintech DIVOPT) and it disagrees with
+    # the scheme master, route the row to the correction queue instead of
+    # silently accepting it. This catches the common post-SEBI-2021 case
+    # where historical feed files still use "DIVIDEND" wording while the
+    # master has been migrated to "IDCW".
+    feed_plan = row.get("plan_type_from_feed")
+    scheme_plan = scheme.get("plan_type")
+    if feed_plan and scheme_plan and feed_plan != scheme_plan:
+        raise ValidationError(
+            CorrectionType.OTHER,
+            f"plan_type mismatch: feed says '{feed_plan}', "
+            f"scheme master says '{scheme_plan}' for {row['scheme_code']}",
         )

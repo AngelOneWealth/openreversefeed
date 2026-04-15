@@ -28,6 +28,27 @@ _FORMAT1_FIELD_MAP = {
     "PANNO": "pan",
     "INV_NAME": "investor_name",
     "BROK_CODE": "broker_code",
+    # KFintech DIVOPT encodes the dividend / growth plan for the scheme.
+    # Legacy files use "DIVIDEND PAYOUT" / "DIVIDEND REINVESTMENT" strings,
+    # post-SEBI-2021 files use "IDCW PAYOUT" / "IDCW REINVESTMENT". The
+    # validator reconciles the feed flag against the scheme master.
+    "DIVOPT": "dividend_option_flag",
+}
+
+# Mapping from the raw KFintech DIVOPT text to the canonical plan_type
+# vocabulary. Matches are case-insensitive and whitespace-collapsed so
+# "idcw payout" and "IDCW PAYOUT" resolve to the same value. Legacy
+# "DIVIDEND ..." wording is mapped identically — SEBI renamed these to
+# IDCW in 2021 but KFintech still ships old strings on historical files.
+KFINTECH_DIVOPT_TO_PLAN_TYPE: dict[str, str] = {
+    "IDCW PAYOUT": "idcw_payout",
+    "IDCW REINVESTMENT": "idcw_reinvest",
+    "IDCW REINVEST": "idcw_reinvest",
+    "DIVIDEND PAYOUT": "idcw_payout",
+    "DIVIDEND REINVESTMENT": "idcw_reinvest",
+    "DIVIDEND REINVEST": "idcw_reinvest",
+    "GROWTH": "growth",
+    "GROWTH PAYOUT": "growth",
 }
 
 _FORMAT2_FIELD_MAP = dict(_FORMAT1_FIELD_MAP)
@@ -100,6 +121,22 @@ class _KFintechBase(FeedAdapter):
             df["__source_meta"] = raw[unknown_cols].to_dict(orient="records")
         else:
             df["__source_meta"] = [{}] * len(df)
+
+        # Translate the KFintech DIVOPT text into the canonical plan_type
+        # vocabulary. Legacy files use "DIVIDEND PAYOUT" wording, post-SEBI
+        # (2021) files use "IDCW PAYOUT" — both map to the same value.
+        if "dividend_option_flag" in df.columns:
+            df["plan_type_from_feed"] = (
+                df["dividend_option_flag"]
+                .astype(str)
+                .str.strip()
+                .str.upper()
+                .str.replace(r"\s+", " ", regex=True)
+                .map(KFINTECH_DIVOPT_TO_PLAN_TYPE)
+            )
+        else:
+            df["plan_type_from_feed"] = None
+
         df.insert(0, "registrar_row_index", range(len(df)))
         return df
 
