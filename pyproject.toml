@@ -51,7 +51,7 @@ dev = [
     "hypothesis >=6.100,<7",
     "testcontainers[postgres] >=4,<5",
     "ruff >=0.5,<1",
-    "mypy >=1.10,<2",
+    "mypy >=1.10,<3",
     "moto[sqs,s3] >=5,<6",
     "dbf >=0.99,<1",
 ]
