@@ -231,6 +231,18 @@ class CamsWbr2cAdapter(CamsAdapter):
     discriminator_headers = {"AMC_CODE", "TRXNNO"}
     field_map = _WBR2C_FIELD_MAP
 
+    def parse(self, file_path: str | Path) -> pd.DataFrame:
+        path = Path(file_path)
+        if path.suffix.lower() == ".csv":
+            from openreversefeed.adapters.parse_utils import (
+                has_quoted_headers,
+                normalize_quoted_csv,
+            )
+
+            if has_quoted_headers(path):
+                return normalize_quoted_csv(path)
+        return super().parse(file_path)
+
     def normalize(self, raw: pd.DataFrame) -> pd.DataFrame:
         df = super().normalize(raw)
         # WBR2C ships PRODCODE as the scheme identifier (no SCHEME_CODE column).
