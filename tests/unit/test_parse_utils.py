@@ -119,3 +119,14 @@ class TestToNumber:
 
     def test_whitespace_only_returns_nan(self):
         assert math.isnan(to_number("  "))
+
+    def test_dataframe_map_with_indian_commas(self):
+        """to_number works as a pandas .map() target for mixed-format columns."""
+        import pandas as pd
+
+        col = pd.Series(["1,00,000.50", "5000", "12,345.00", ""])
+        result = col.map(to_number)
+        assert result.iloc[0] == 100000.50
+        assert result.iloc[1] == 5000.0
+        assert result.iloc[2] == 12345.00
+        assert math.isnan(result.iloc[3])
