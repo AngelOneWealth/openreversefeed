@@ -1,4 +1,5 @@
 """KFintech (formerly KARVY) adapters. Three sub-formats: FORMAT1, FORMAT2, CSV."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -163,10 +164,10 @@ class _KFintechBase(FeedAdapter):
         return action, tag, False
 
     def composite_key(self, row: dict[str, Any]) -> str:
+        from openreversefeed.core.composite_key import _date_str
+
         parent = row.get("parent_transaction_number") or "0"
-        date_val = row["transaction_date"]
-        date_str = date_val.strftime("%Y%m%d") if hasattr(date_val, "strftime") else str(date_val)
-        return f"{row['transaction_number']}_{parent}_{row['folio_number']}_{date_str}"
+        return f"{row['transaction_number']}_{parent}_{row['folio_number']}_{_date_str(row['transaction_date'])}"
 
 
 class KFintechFormat1Adapter(_KFintechBase):
@@ -237,6 +238,69 @@ class KFintechCsvAdapter(_KFintechBase):
         return self._normalize_with_map(raw, _CSV_FIELD_MAP)
 
 
+# Field map for the KFintech "detailed" English-header CSV format that broker
+# portals / BSE STAR MF export. Column names differ from the simple CSV format
+# in capitalization and naming (e.g. "Nav" not "NAV", "Transaction Head" not
+# "Transaction Purred", "PAN1" not "PAN", "Product Code" not "AMC Code").
+_DETAILED_CSV_FIELD_MAP = {
+    "Inward Number": "transaction_id",
+    "Transaction Number": "transaction_number",
+    "Purchase Transaction No": "parent_transaction_number",
+    "Folio Number": "folio_number",
+    "Product Code": "product_code",
+    "Scheme Code": "scheme_code",
+    "Units": "units",
+    "Amount": "amount",
+    "Nav": "nav",
+    "Transaction Date": "transaction_date",
+    "Transaction Mode": "transaction_mode",
+    # "Transaction Head" carries P/R/D/DP — the purred-style indicator
+    "Transaction Head": "transaction_purred",
+    # "Transaction Flag" carries TI/TO/SI/SO for transfers and switches
+    "Transaction Flag": "transaction_flag",
+    "Transaction Type": "transaction_type",
+    "PAN1": "pan",
+    "Investor Name": "investor_name",
+    "Agent Code": "broker_code",
+    # Stamp duty is a separate column; we capture it so normalize() can fold
+    # it into the canonical amount for correct cost-basis accounting.
+    "Stamp Duty Charges": "stamp_duty",
+}
+
+
+class KFintechDetailedCsvAdapter(_KFintechBase):
+    """KFintech English-header CSV as exported by BSE STAR MF / broker portals.
+
+    Distinguishable from KFintechCsvAdapter by:
+    - "Nav" (not "NAV") as the NAV column
+    - "Transaction Head" (not "Transaction Purred") for the P/R/D indicator
+    - "PAN1" (not "PAN") for the investor PAN
+    - "Product Code" (not "AMC Code") for the AMC identifier
+    """
+
+    name = "kfintech_detailed_csv"
+    priority = 75
+    mandatory_headers = {"Inward Number", "Folio Number", "Units", "Transaction Date"}
+    discriminator_headers = {"Transaction Head", "PAN1"}
+    field_map = _DETAILED_CSV_FIELD_MAP
+
+    def parse(self, file_path: str | Path) -> pd.DataFrame:
+        return pd.read_csv(Path(file_path), dtype=str)
+
+    def normalize(self, raw: pd.DataFrame) -> pd.DataFrame:
+        df = self._normalize_with_map(raw, _DETAILED_CSV_FIELD_MAP)
+        # Fold stamp duty into amount so cost-basis reflects the true debit.
+        # Stamp duty is always a cost on purchases; on redemptions it is zero.
+        if "stamp_duty" in df.columns:
+            df["amount"] = (
+                pd.to_numeric(df["amount"], errors="coerce").fillna(0)
+                + pd.to_numeric(df["stamp_duty"], errors="coerce").fillna(0)
+            ).astype(str)
+            df.drop(columns=["stamp_duty"], inplace=True)
+        return df
+
+
 default_registry.register(KFintechFormat1Adapter)
 default_registry.register(KFintechFormat2Adapter)
 default_registry.register(KFintechCsvAdapter)
+default_registry.register(KFintechDetailedCsvAdapter)

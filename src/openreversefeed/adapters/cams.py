@@ -1,4 +1,5 @@
 """CAMS_FORMAT1 adapter. See spec §5 step 3."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -30,6 +31,17 @@ _FIELD_MAP: dict[str, str] = {
     # raw flag so validators / downstream can check it against the scheme
     # master's plan_type.
     "REINVEST_F": "dividend_option_flag",
+}
+
+# CAMS WBR2C (DBF/CSV) uses SCHEME (name) + PRODCODE (code) instead of SCHEME_CODE.
+_WBR2C_FIELD_MAP: dict[str, str] = {
+    **_FIELD_MAP,
+    "TRXNNO": "transaction_number",
+    "PAN": "pan",
+    "INV_NAME": "investor_name",
+    "PURPRICE": "nav",
+    "STAMP_DUTY": "stamp_duty",
+    "AMC_CODE": "amc_code",
 }
 
 # Mapping from the raw CAMS REINVEST_F flag to the canonical plan_type
@@ -192,12 +204,58 @@ class CamsAdapter(FeedAdapter):
         return action, tag, False
 
     def composite_key(self, row: dict[str, Any]) -> str:
-        date_val = row["transaction_date"]
-        date_str = date_val.strftime("%Y%m%d") if hasattr(date_val, "strftime") else str(date_val)
+        from openreversefeed.core.composite_key import _date_str
+
         return (
             f"{row['original_trans_number']}_{row['transaction_type']}_"
-            f"{row['transaction_number']}_{date_str}"
+            f"{row['transaction_number']}_{_date_str(row['transaction_date'])}"
         )
 
 
+class CamsWbr2cAdapter(CamsAdapter):
+    """CAMS WBR2C transaction feed — DBF/CSV with SCHEME + AMC_CODE columns."""
+
+    name = "cams_wbr2c"
+    priority = 110
+    mandatory_headers = {
+        "USRTRXNO",
+        "FOLIO_NO",
+        "PRODCODE",
+        "SCHEME",
+        "UNITS",
+        "AMOUNT",
+        "TRADDATE",
+        "TRXNMODE",
+        "TRXNTYPE",
+    }
+    discriminator_headers = {"AMC_CODE", "TRXNNO"}
+    field_map = _WBR2C_FIELD_MAP
+
+    def parse(self, file_path: str | Path) -> pd.DataFrame:
+        path = Path(file_path)
+        if path.suffix.lower() == ".csv":
+            from openreversefeed.adapters.parse_utils import (
+                has_quoted_headers,
+                normalize_quoted_csv,
+            )
+
+            if has_quoted_headers(path):
+                return normalize_quoted_csv(path)
+        return super().parse(file_path)
+
+    def normalize(self, raw: pd.DataFrame) -> pd.DataFrame:
+        df = super().normalize(raw)
+        # WBR2C ships PRODCODE as the scheme identifier (no SCHEME_CODE column).
+        if "scheme_code" not in df.columns and "product_code" in df.columns:
+            df["scheme_code"] = df["product_code"]
+        # Include stamp duty in cost basis, matching Investwell / KFintech handling.
+        if "stamp_duty" in df.columns:
+            df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0) + pd.to_numeric(
+                df["stamp_duty"], errors="coerce"
+            ).fillna(0)
+            df.drop(columns=["stamp_duty"], inplace=True)
+        return df
+
+
 default_registry.register(CamsAdapter)
+default_registry.register(CamsWbr2cAdapter)

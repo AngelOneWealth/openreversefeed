@@ -1,8 +1,10 @@
+import tempfile
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 
-from openreversefeed.adapters.cams import CamsAdapter
+from openreversefeed.adapters.cams import CamsAdapter, CamsWbr2cAdapter
 from openreversefeed.adapters.registry import default_registry
 from openreversefeed.core.models import Action, Registrar
 
@@ -99,9 +101,7 @@ def test_cams_classify_non_financial_no_effect():
 
 def test_cams_classify_nfo_is_buy_new_fund_offer():
     adapter = CamsAdapter()
-    action, tag, is_rev = adapter.classify_row(
-        {"transaction_type": "NFO", "transaction_mode": "N"}
-    )
+    action, tag, is_rev = adapter.classify_row({"transaction_type": "NFO", "transaction_mode": "N"})
     assert action is Action.BUY
     assert tag == "new_fund_offer"
     assert is_rev is False
@@ -126,3 +126,40 @@ def test_cams_registered_in_default_registry():
     import openreversefeed.adapters.cams  # noqa: F401
 
     assert any(a is CamsAdapter for a in default_registry._adapters)
+
+
+def test_cams_wbr2c_parse_handles_quoted_csv():
+    """Quoted CAMS lot-level CSV should be parsed with stripped quotes."""
+    csv_content = (
+        "'USRTRXNO','FOLIO_NO','PRODCODE','SCHEME','UNITS','AMOUNT',"
+        "'TRADDATE','TRXNMODE','TRXNTYPE','TRXNNO','AMC_CODE','PAN','INV_NAME','PURPRICE'\n"
+        "'TXN001','1234567/89','P14S','DSP Fund','45.735','5000',"
+        "'28/08/2026','N','P','1','D','ABCDE1234F','Test Investor','109.32'\n"
+    )
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+        f.write(csv_content)
+    path = Path(f.name)
+
+    adapter = CamsWbr2cAdapter()
+    raw = adapter.parse(path)
+    assert "USRTRXNO" in raw.columns
+    assert raw.iloc[0]["USRTRXNO"] == "TXN001"
+    assert raw.iloc[0]["PAN"] == "ABCDE1234F"
+
+
+def test_cams_wbr2c_parse_ordinary_csv_unchanged():
+    """Non-quoted CAMS CSV goes through standard pandas parsing."""
+    csv_content = (
+        "USRTRXNO,FOLIO_NO,PRODCODE,SCHEME,UNITS,AMOUNT,"
+        "TRADDATE,TRXNMODE,TRXNTYPE,TRXNNO,AMC_CODE,PAN,INV_NAME,PURPRICE\n"
+        "TXN001,1234567/89,P14S,DSP Fund,45.735,5000,"
+        "28/08/2026,N,P,1,D,ABCDE1234F,Test Investor,109.32\n"
+    )
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8") as f:
+        f.write(csv_content)
+    path = Path(f.name)
+
+    adapter = CamsWbr2cAdapter()
+    raw = adapter.parse(path)
+    assert "USRTRXNO" in raw.columns
+    assert raw.iloc[0]["USRTRXNO"] == "TXN001"

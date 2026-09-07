@@ -146,10 +146,12 @@ def process_source_file(source_file_id: int) -> dict[str, Any]:
             normalized["transaction_date"] = pd.to_datetime(
                 normalized["transaction_date"]
             ).dt.date
-            normalized["units"] = normalized["units"].astype(float)
-            normalized["amount"] = normalized["amount"].astype(float)
+            from openreversefeed.adapters.parse_utils import to_number
+
+            normalized["units"] = normalized["units"].map(to_number)
+            normalized["amount"] = normalized["amount"].map(to_number)
             if "nav" in normalized.columns:
-                normalized["nav"] = normalized["nav"].astype(float)
+                normalized["nav"] = normalized["nav"].map(to_number)
 
             cleaned = Cleaner().run(normalized, adapter)
 
